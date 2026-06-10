@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nanocode Compiler</title>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --bg2: #161616;
+    --bg3: #1e1e1e;
+    --bg4: #252525;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e8e6e1;
+    --text2: #9e9b95;
+    --text3: #605e59;
+    --accent: #d4a97a;
+    --accent2: #b8886a;
+    --success: #6db87c;
+    --error: #e06c6c;
+    --warn: #d4a97a;
+    --info: #7ba7d4;
+    --font: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 52px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-icon svg { width: 16px; height: 16px; }
+
+  .logo-text {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-family: var(--sans);
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text2);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover { background: var(--bg3); color: var(--text); border-color: var(--border2); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #1a1208;
+    border: none;
+  }
+
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  /* Main layout */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .panel:nth-child(2) { border-right: none; }
+  .panel:nth-child(3) { border-bottom: none; }
+  .panel:nth-child(4) { border-right: none; border-bottom: none; }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+    gap: 8px;
+  }
+
+  .panel-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+
+  .panel-title .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text3);
+  }
+
+  .panel-title .dot.active { background: var(--success); }
+  .panel-title .dot.error { background: var(--error); }
+
+  .panel-badge {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .badge-lexer  { background: rgba(123,167,212,0.15); color: var(--info); }
+  .badge-parser { background: rgba(109,184,124,0.15); color: var(--success); }
+  .badge-semantic { background: rgba(212,169,122,0.15); color: var(--accent); }
+  .badge-codegen { background: rgba(160,120,200,0.15); color: #b89fd4; }
+  .badge-exec   { background: rgba(109,184,124,0.15); color: var(--success); }
+  .badge-theory { background: rgba(160,120,200,0.15); color: #b89fd4; }
+
+  .panel-body {
+    flex: 1;
+    overflow: auto;
+    padding: 16px;
+  }
+
+  .panel-body::-webkit-scrollbar { width: 4px; }
+  .panel-body::-webkit-scrollbar-track { background: transparent; }
+  .panel-body::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+  /* Editor */
+  .editor-wrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  .line-nums {
+    padding: 16px 0;
+    min-width: 40px;
+    text-align: right;
+    background: var(--bg);
+    color: var(--text3);
+    font-family: var(--font);
+    font-size: 13px;
+    line-height: 1.65;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .line-nums span { display: block; padding: 0 10px; }
+
+  textarea#code-input {
+    flex: 1;
+    background: var(--bg);
+    border: none;
+    outline: none;
+    resize: none;
+    font-family: var(--font);
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text);
+    padding: 16px;
+    caret-color: var(--accent);
+    tab-size: 2;
+  }
+
+  textarea#code-input::selection { background: rgba(212,169,122,0.2); }
+
+  /* Token display */
+  .token-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-content: flex-start;
+  }
+
+  .token {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: var(--font);
+    font-size: 11.5px;
+    font-weight: 500;
+    border: 1px solid transparent;
+  }
+
+  .token-ID    { background: rgba(123,167,212,0.12); color: #8dbde8; border-color: rgba(123,167,212,0.2); }
+  .token-NUM   { background: rgba(109,184,124,0.12); color: #7acc8a; border-color: rgba(109,184,124,0.2); }
+  .token-OP    { background: rgba(212,169,122,0.12); color: var(--accent); border-color: rgba(212,169,122,0.2); }
+  .token-PRINT { background: rgba(160,120,200,0.12); color: #c4a8e8; border-color: rgba(160,120,200,0.2); }
+  .token-ASSIGN{ background: rgba(224,108,108,0.12); color: #e88e8e; border-color: rgba(224,108,108,0.2); }
+  .token-LPAREN,.token-RPAREN { background: var(--bg3); color: var(--text2); border-color: var(--border); }
+  .token-NL    { background: var(--bg3); color: var(--text3); border-color: var(--border); font-style: italic; }
+
+  /* Phase sections */
+  .phase-section {
+    margin-bottom: 20px;
+  }
+
+  .phase-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .phase-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Code/output blocks */
+  .code-block {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-family: var(--font);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .code-block .kw  { color: #c792ea; }
+  .code-block .op  { color: var(--accent); }
+  .code-block .num { color: var(--success); }
+  .code-block .str { color: #c3e88d; }
+  .code-block .comment { color: var(--text3); font-style: italic; }
+
+  /* Asm instructions */
+  .asm-line { display: flex; align-items: baseline; gap: 10px; line-height: 1.8; }
+  .asm-instr { color: #c792ea; font-weight: 600; min-width: 60px; }
+  .asm-arg   { color: var(--success); }
+  .asm-comment { color: var(--text3); font-style: italic; font-size: 11px; }
+
+  /* Status messages */
+  .status-msg {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .status-ok    { background: rgba(109,184,124,0.1); border: 1px solid rgba(109,184,124,0.2); color: var(--success); }
+  .status-err   { background: rgba(224,108,108,0.1); border: 1px solid rgba(224,108,108,0.2); color: var(--error); }
+  .status-info  { background: rgba(123,167,212,0.1); border: 1px solid rgba(123,167,212,0.2); color: var(--info); }
+  .status-warn  { background: rgba(212,169,122,0.1); border: 1px solid rgba(212,169,122,0.2); color: var(--warn); }
+
+  .status-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+  /* Output terminal */
+  .terminal {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    font-family: var(--font);
+    font-size: 13px;
+    line-height: 1.9;
+  }
+
+  .term-line { display: flex; gap: 8px; }
+  .term-prompt { color: var(--success); user-select: none; }
+  .term-out    { color: var(--text); }
+  .term-err    { color: var(--error); }
+
+  /* Theory concepts */
+  .concept-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+
+  .concept-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #c4a8e8;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .concept-desc {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  .concept-tag {
+    font-size: 10px;
+    background: rgba(160,120,200,0.15);
+    color: #c4a8e8;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+
+  /* Tabs for bottom panels */
+  .tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .tab {
+    padding: 9px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .tab:hover { color: var(--text2); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Empty state */
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 8px;
+    color: var(--text3);
+    font-size: 13px;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .empty svg { opacity: 0.3; margin-bottom: 4px; }
+
+  /* Semantic table */
+  .sym-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font);
+    font-size: 12px;
+  }
+
+  .sym-table th {
+    text-align: left;
+    padding: 6px 10px;
+    background: var(--bg4);
+    color: var(--text3);
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sym-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .sym-table tr:last-child td { border-bottom: none; }
+  .sym-table .sym-name { color: #8dbde8; }
+  .sym-table .sym-val  { color: var(--success); }
+  .sym-table .sym-line { color: var(--text3); }
+
+  /* Scrollbar for textarea */
+  textarea::-webkit-scrollbar { width: 4px; }
+  textarea::-webkit-scrollbar-track { background: transparent; }
+  textarea::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+  /* Resize handle */
+  .resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    cursor: col-resize;
+    z-index: 10;
+  }
+
+  /* Keyboard shortcut hints */
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 5px;
+    background: var(--bg4);
+    border: 1px solid var(--border2);
+    border-radius: 3px;
+    font-family: var(--font);
+    font-size: 10px;
+    color: var(--text3);
+  }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-in { animation: fadeIn 0.2s ease both; }
+
+  /* Pipeline indicator */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 8px 16px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    overflow-x: auto;
+  }
+
+  .pipe-step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text3);
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .pipe-step.done  { color: var(--success); }
+  .pipe-step.error { color: var(--error); }
+  .pipe-step.active { color: var(--accent); }
+
+  .pipe-arrow { color: var(--text3); font-size: 10px; padding: 0 2px; }
+
+  .pipe-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M2 2h5v5H2V2zm7 0h5v5H9V2zm0 7h5v5H9V9zm-7 0h5v5H2V9z" fill="#1a1208" opacity="0.7"/>
+        <path d="M4 4l1 1M11 4l1 1M11 11l1 1M4 11l1 1" stroke="#1a1208" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">Nanocode Compiler</div>
+      <div class="logo-sub">Compilador Educacional</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost" onclick="loadExample('basic')">Exemplo Básico</button>
+    <button class="btn btn-ghost" onclick="loadExample('error')">Exemplo Erro</button>
+    <button class="btn btn-ghost" onclick="clearAll()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10"/>
+      </svg>
+      Limpar
+    </button>
+    <button class="btn btn-primary" onclick="compile()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M5 3l8 5-8 5V3z" fill="currentColor" stroke="none"/>
+      </svg>
+      Compilar <span class="kbd">⌘↵</span>
+    </button>
+  </div>
+</header>
+
+<!-- Pipeline indicator -->
+<div class="pipeline" id="pipeline">
+  <div class="pipe-step" id="ps-lexer"><div class="pipe-dot"></div> Análise Léxica</div>
+  <div class="pipe-arrow">›</div>
+  <div class="pipe-step" id="ps-parser"><div class="pipe-dot"></div> Análise Sintática</div>
+  <div class="pipe-arrow">›</div>
+  <div class="pipe-step" id="ps-semantic"><div class="pipe-dot"></div> Análise Semântica</div>
+  <div class="pipe-arrow">›</div>
+  <div class="pipe-step" id="ps-codegen"><div class="pipe-dot"></div> Geração de Código</div>
+  <div class="pipe-arrow">›</div>
+  <div class="pipe-step" id="ps-exec"><div class="pipe-dot"></div> Execução</div>
+</div>
+
+<div class="main">
+  <!-- Panel 1: Editor -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <div class="dot" id="dot-editor"></div>
+        Código Fonte
+      </div>
+      <span style="font-size:11px;color:var(--text3)">main.nano</span>
+    </div>
+    <div class="editor-wrap">
+      <div class="line-nums" id="line-nums"><span>1</span></div>
+      <textarea id="code-input" spellcheck="false" placeholder="# Digite seu código Nanocode aqui&#10;# Exemplo:&#10;x = 10&#10;y = x + 5&#10;print(y)"></textarea>
+    </div>
+  </div>
+
+  <!-- Panel 2: Análise Léxica + Sintática -->
+  <div class="panel">
+    <div class="tabs" id="tabs-top">
+      <div class="tab active" data-tab="lexer" onclick="switchTab('top','lexer',this)">Léxica <span class="panel-badge badge-lexer">AFD</span></div>
+      <div class="tab" data-tab="parser" onclick="switchTab('top','parser',this)">Sintática <span class="panel-badge badge-parser">CFL</span></div>
+      <div class="tab" data-tab="semantic" onclick="switchTab('top','semantic',this)">Semântica <span class="panel-badge badge-semantic">CSL</span></div>
+    </div>
+    <div class="panel-body" id="tab-content-lexer">
+      <div class="empty" id="empty-lexer">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Execute o compilador para ver os tokens
+      </div>
+      <div id="lexer-output" style="display:none"></div>
+    </div>
+    <div class="panel-body tab-content" id="tab-content-parser" style="display:none">
+      <div class="empty" id="empty-parser">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Execute o compilador para ver a análise sintática
+      </div>
+      <div id="parser-output" style="display:none"></div>
+    </div>
+    <div class="panel-body tab-content" id="tab-content-semantic" style="display:none">
+      <div class="empty" id="empty-semantic">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        Execute o compilador para ver a análise semântica
+      </div>
+      <div id="semantic-output" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Panel 3: Código Intermediário -->
+  <div class="panel">
+    <div class="tabs" id="tabs-bottom-left">
+      <div class="tab active" data-tab="codegen" onclick="switchTab('bl','codegen',this)">Código Intermediário <span class="panel-badge badge-codegen">ASM</span></div>
+    </div>
+    <div class="panel-body" id="tab-content-codegen">
+      <div class="empty" id="empty-codegen">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Execute o compilador para ver o pseudo-assembly
+      </div>
+      <div id="codegen-output" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Panel 4: Execução + Teoria -->
+  <div class="panel">
+    <div class="tabs" id="tabs-bottom-right">
+      <div class="tab active" data-tab="exec" onclick="switchTab('br','exec',this)">Execução <span class="panel-badge badge-exec">MT</span></div>
+      <div class="tab" data-tab="theory" onclick="switchTab('br','theory',this)">Teoria da Computação</div>
+    </div>
+    <div class="panel-body" id="tab-content-exec">
+      <div class="empty" id="empty-exec">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Execute o compilador para ver a saída do programa
+      </div>
+      <div id="exec-output" style="display:none"></div>
+    </div>
+    <div class="panel-body tab-content" id="tab-content-theory" style="display:none">
+      <div id="theory-output">
+        <div class="concept-card">
+          <div class="concept-name"><span class="concept-tag">AFD</span> Autômato Finito Determinístico</div>
+          <div class="concept-desc">Usado na análise léxica para reconhecer tokens. Cada caractere do código é processado por transições de estados. Ex: estado INICIO → lê letra → estado ID → lê dígito → estado ID (aceita identificador).</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-name"><span class="concept-tag">ER</span> Expressões Regulares</div>
+          <div class="concept-desc">Padrões que descrevem os tokens da linguagem. Identificadores: <code style="color:var(--accent)">[a-z][a-z0-9]*</code>. Números: <code style="color:var(--accent)">[0-9]+</code>. Equivalentes a AFDs pela hierarquia de Chomsky (Tipo 3).</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-name"><span class="concept-tag">CFL</span> Gramática Livre de Contexto</div>
+          <div class="concept-desc">Define a estrutura sintática da linguagem. Regras como <code style="color:var(--accent)">stmt → ID = expr | print(expr)</code>. Reconhecida por Autômatos de Pilha (PDA) – Tipo 2 na hierarquia.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-name"><span class="concept-tag">PDA</span> Autômato de Pilha</div>
+          <div class="concept-desc">Extensão do AFD com uma pilha. Permite verificar estruturas aninhadas e balanceamento. Usado no parser para validar a gramática livre de contexto.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-name"><span class="concept-tag">CSL</span> Linguagem Sensível ao Contexto</div>
+          <div class="concept-desc">A análise semântica verifica propriedades que dependem do contexto, como variáveis definidas antes de serem usadas. Tipo 1 na hierarquia de Chomsky.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-name"><span class="concept-tag">MT</span> Máquina de Turing</div>
+          <div class="concept-desc">Modelo teórico que executa sequencialmente as instruções. A execução do compilador simula uma MT: lê código intermediário, mantém estado (memória), e produz resultado. Tipo 0 – poder computacional máximo.</div>
+        </div>
+        <div style="margin-top:16px">
+          <div class="phase-label">Hierarquia de Chomsky</div>
+          <div class="code-block" style="font-size:11px">Tipo 3  ← Expressões Regulares (Léxico)
+Tipo 2  ← Gramáticas Livres de Contexto (Sintático)
+Tipo 1  ← Gramáticas Sensíveis ao Contexto (Semântico)
+Tipo 0  ← Gramáticas Irrestritas (Execução / MT)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==========================================================================
+// COMPILADOR Nanocode — CÓDIGO JAVASCRIPT COMPLETO
+// ==========================================================================
+// Este arquivo implementa todas as etapas de um compilador educacional:
+//   1. Análise Léxica   → transforma código em tokens (AFD)
+//   2. Análise Sintática → valida a estrutura do código (CFL/PDA)
+//   3. Análise Semântica → verifica o significado do código (CSL)
+//   4. Geração de Código → converte para pseudo-assembly
+//   5. Execução          → roda o código (simula Máquina de Turing)
+// ==========================================================================
+
+
+// --------------------------------------------------------------------------
+// GERENCIAMENTO DE ABAS (interface visual)
+// --------------------------------------------------------------------------
+// Define quais abas existem em cada grupo de painéis da tela.
+// "top" = painel superior direito (Léxica, Sintática, Semântica)
+// "bl"  = painel inferior esquerdo (Código Intermediário)
+// "br"  = painel inferior direito (Execução, Teoria)
+const tabGroups = {
+  top: { tabs: ['lexer', 'parser', 'semantic'] },
+  bl:  { tabs: ['codegen'] },
+  br:  { tabs: ['exec', 'theory'] },
+};
+
+// Função chamada ao clicar em uma aba.
+// Esconde todos os conteúdos do grupo e exibe apenas o selecionado.
+function switchTab(group, tab, el) {
+  const grp = tabGroups[group];
+  if (!grp) return; // segurança: ignora se o grupo não existir
+
+  // Esconde todos os painéis de conteúdo do grupo
+  grp.tabs.forEach(t => {
+    const content = document.getElementById('tab-content-' + t);
+    if (content) content.style.display = 'none';
+  });
+
+  // Exibe apenas o painel da aba clicada
+  const active = document.getElementById('tab-content-' + tab);
+  if (active) active.style.display = 'block';
+
+  // Remove a classe "active" de todas as abas e adiciona à clicada
+  const container = el.closest('.tabs');
+  container.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+
+// --------------------------------------------------------------------------
+// NUMERAÇÃO DE LINHAS DO EDITOR
+// --------------------------------------------------------------------------
+// Referências aos elementos do editor de código e da coluna de números
+const ta = document.getElementById('code-input'); // área de texto (editor)
+const ln = document.getElementById('line-nums');  // coluna de números
+
+// Atualiza os números de linha sempre que o usuário digitar algo
+function updateLineNums() {
+  // Conta quantas linhas existem no editor (dividindo pelo '\n')
+  const lines = ta.value.split('\n').length;
+  let html = '';
+  // Gera um <span> com o número para cada linha
+  for (let i = 1; i <= lines; i++) html += `<span>${i}</span>`;
+  ln.innerHTML = html;
+  // Sincroniza o scroll da coluna de números com o scroll do editor
+  ln.scrollTop = ta.scrollTop;
+}
+
+// Escuta o evento "input" (toda vez que o usuário digita ou apaga algo)
+ta.addEventListener('input', updateLineNums);
+
+// Sincroniza o scroll da numeração quando o usuário rola o editor
+ta.addEventListener('scroll', () => { ln.scrollTop = ta.scrollTop; });
+
+// Atalho de teclado: Ctrl+Enter ou Cmd+Enter executa o compilador
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault(); // impede comportamento padrão do navegador
+    compile();          // chama a função principal de compilação
+  }
+});
+
+
+// --------------------------------------------------------------------------
+// EXEMPLOS PRÉ-DEFINIDOS DE CÓDIGO Nanocode
+// --------------------------------------------------------------------------
+// "basic" → programa válido que define variáveis e imprime resultado
+// "error" → programa com erro semântico: usa 'x' sem declarar antes
+const examples = {
+  basic: `x = 10
+y = x + 5
+z = y + 3
+print(z)`,
+  error: `y = x + 5
+print(y)`
+};
+
+// Carrega um exemplo no editor ao clicar nos botões do cabeçalho
+function loadExample(name) {
+  ta.value = examples[name] || ''; // preenche o editor com o exemplo
+  updateLineNums();                // atualiza a numeração de linhas
+}
+
+// Limpa o editor e reinicia todos os painéis de saída
+function clearAll() {
+  ta.value = '';     // esvazia o editor
+  updateLineNums();  // atualiza numeração (volta para linha 1)
+  resetPipeline();   // reinicia os indicadores de progresso no topo
+
+  // Para cada painel de resultado: esconde o conteúdo e mostra o estado vazio
+  ['lexer', 'parser', 'semantic', 'codegen', 'exec'].forEach(id => {
+    const out = document.getElementById(id + '-output');
+    const emp = document.getElementById('empty-' + id);
+    if (out) { out.style.display = 'none'; out.innerHTML = ''; }
+    if (emp) emp.style.display = 'flex';
+  });
+}
+
+
+// --------------------------------------------------------------------------
+// INDICADORES DE PROGRESSO (pipeline visual no topo da tela)
+// --------------------------------------------------------------------------
+// Reinicia todos os passos do pipeline para o estado inicial (sem cor)
+function resetPipeline() {
+  ['lexer', 'parser', 'semantic', 'codegen', 'exec'].forEach(s => {
+    const el = document.getElementById('ps-' + s);
+    if (el) el.className = 'pipe-step'; // remove classes "done", "error", "active"
+  });
+}
+
+// Atualiza o estado visual de uma etapa específica do pipeline
+// status pode ser: 'active' (em andamento), 'done' (concluído), 'error' (falhou)
+function setPipelineStep(step, status) {
+  const el = document.getElementById('ps-' + step);
+  if (el) el.className = 'pipe-step ' + status;
+}
+
+
+// ==========================================================================
+// ETAPA 1 — ANÁLISE LÉXICA (LEXER / TOKENIZADOR)
+// ==========================================================================
+// Objetivo: varrer o código fonte caractere por caractere e transformá-lo
+// em uma sequência de tokens (unidades mínimas com significado).
+//
+// Conceito de Teoria da Computação: Autômato Finito Determinístico (AFD)
+// Cada token é reconhecido por um estado do autômato:
+//   - Estado INÍCIO → lê letra   → Estado ID    → aceita identificador
+//   - Estado INÍCIO → lê dígito  → Estado NUM   → aceita número
+//   - Estado INÍCIO → lê '='     → Token ASSIGN
+//   - Estado INÍCIO → lê '+'     → Token PLUS
+//   etc.
+//
+// Tipos de tokens reconhecidos:
+const TOKEN_TYPES = {
+  PRINT:   'PRINT',   // palavra reservada "print"
+  ID:      'ID',      // identificador (nome de variável): x, y, z, etc.
+  NUM:     'NUM',     // número inteiro: 10, 5, 42, etc.
+  ASSIGN:  'ASSIGN',  // operador de atribuição: =
+  PLUS:    'PLUS',    // operador de adição: +
+  LPAREN:  'LPAREN',  // parêntese esquerdo: (
+  RPAREN:  'RPAREN',  // parêntese direito: )
+  NEWLINE: 'NEWLINE', // fim de linha (separador entre instruções)
+  COMMENT: 'COMMENT', // comentário iniciado com #
+};
+
+// Função principal do analisador léxico
+// Recebe o código fonte como string e retorna lista de tokens + erros
+function lexer(codigo) {
+  const tokens = [];  // lista de tokens encontrados
+  const errors = [];  // lista de erros léxicos encontrados
+  const linhas = codigo.split('\n'); // divide o código em linhas
+
+  // Processa linha por linha
+  linhas.forEach((linha, indLinha) => {
+    const aparada = linha.trim(); // remove espaços do início e fim
+
+    // Ignora linhas vazias; processa comentários (começam com #)
+    if (!aparada || aparada.startsWith('#')) {
+      if (aparada.startsWith('#')) {
+        // Registra o comentário como token (para exibição)
+        tokens.push({ type: 'COMMENT', val: aparada, line: indLinha + 1 });
+      }
+      // Marca o fim da linha de qualquer forma
+      if (aparada) tokens.push({ type: 'NEWLINE', val: '\\n', line: indLinha + 1 });
+      return; // vai para a próxima linha
+    }
+
+    // Posição atual dentro da linha (índice do caractere)
+    let i = 0;
+
+    // Loop principal: percorre cada caractere da linha
+    while (i < linha.length) {
+
+      // --- ESTADO: ignora espaços em branco ---
+      if (/\s/.test(linha[i])) { i++; continue; }
+
+      // --- ESTADO: comentário inline (ex: x = 10 # isso é um comentário) ---
+      if (linha[i] === '#') break; // ignora o restante da linha
+
+      // --- ESTADO: reconhece NÚMEROS inteiros ---
+      // AFD: [0-9]+ → enquanto o caractere for dígito, acumula no token NUM
+      if (/[0-9]/.test(linha[i])) {
+        let num = '';
+        const inicio = i;
+        // Continua lendo enquanto forem dígitos (transição de estado no AFD)
+        while (i < linha.length && /[0-9]/.test(linha[i])) {
+          num += linha[i];
+          i++;
+        }
+        // Token NUM criado com valor, número da linha e coluna
+        tokens.push({ type: 'NUM', val: num, line: indLinha + 1, col: inicio + 1 });
+        continue;
+      }
+
+      // --- ESTADO: reconhece IDENTIFICADORES e PALAVRAS RESERVADAS ---
+      // AFD: [a-z_][a-z0-9_]* → começa com letra ou _, continua com letra/dígito/_
+      if (/[a-z_]/i.test(linha[i])) {
+        let palavra = '';
+        const inicio = i;
+        // Continua lendo enquanto forem letras ou dígitos
+        while (i < linha.length && /[a-z0-9_]/i.test(linha[i])) {
+          palavra += linha[i];
+          i++;
+        }
+        // Verifica se é a palavra reservada "print" ou um identificador comum
+        if (palavra === 'print') {
+          tokens.push({ type: 'PRINT', val: 'print', line: indLinha + 1, col: inicio + 1 });
+        } else {
+          tokens.push({ type: 'ID', val: palavra, line: indLinha + 1, col: inicio + 1 });
+        }
+        continue;
+      }
+
+      // --- ESTADO: reconhece OPERADORES e SÍMBOLOS ---
+      // Cada símbolo é um estado de aceitação imediata no AFD
+      if (linha[i] === '=') { tokens.push({ type: 'ASSIGN', val: '=', line: indLinha + 1, col: i + 1 }); i++; continue; }
+      if (linha[i] === '+') { tokens.push({ type: 'PLUS',   val: '+', line: indLinha + 1, col: i + 1 }); i++; continue; }
+      if (linha[i] === '(') { tokens.push({ type: 'LPAREN', val: '(', line: indLinha + 1, col: i + 1 }); i++; continue; }
+      if (linha[i] === ')') { tokens.push({ type: 'RPAREN', val: ')', line: indLinha + 1, col: i + 1 }); i++; continue; }
+
+      // --- ESTADO DE ERRO: caractere desconhecido ---
+      // Nenhum estado do AFD aceitou este caractere → erro léxico
+      errors.push({ msg: `Caractere inválido '${linha[i]}'`, line: indLinha + 1, col: i + 1 });
+      i++; // avança para não travar em loop infinito
+    }
+
+    // Ao final de cada linha, insere um token de quebra de linha
+    tokens.push({ type: 'NEWLINE', val: '\\n', line: indLinha + 1 });
+  });
+
+  return { tokens, errors }; // retorna os tokens gerados e os erros encontrados
+}
+
+
+// ==========================================================================
+// ETAPA 2 — ANÁLISE SINTÁTICA (PARSER)
+// ==========================================================================
+// Objetivo: verificar se a sequência de tokens obedece à gramática da Nanocode.
+// Não basta ter tokens corretos — eles precisam estar na ordem certa.
+//
+// Conceito de Teoria da Computação: Gramática Livre de Contexto (CFL) e
+// Autômato de Pilha (PDA). A gramática da Nanocode é:
+//
+//   programa → instrução*
+//   instrução → ID = expressão
+//             | print( expressão )
+//   expressão → termo ( + termo )*
+//   termo     → ID | NUM
+//
+// Exemplos:
+//   VÁLIDO:   x = 10 + 5      → ID ASSIGN NUM PLUS NUM  ✓
+//   INVÁLIDO: x 10 = + 5      → ID NUM ASSIGN PLUS NUM  ✗ (ordem errada)
+//
+function parser(tokens) {
+  const errors = []; // erros sintáticos encontrados
+  const rules  = []; // regras da gramática aplicadas (para exibição)
+
+  // Agrupa os tokens por linha, ignorando NEWLINEs e COMMENTs
+  // Isso facilita validar cada instrução separadamente
+  const gruposPorLinha = {};
+  tokens.forEach(tok => {
+    if (tok.type === 'NEWLINE' || tok.type === 'COMMENT') return;
+    if (!gruposPorLinha[tok.line]) gruposPorLinha[tok.line] = [];
+    gruposPorLinha[tok.line].push(tok);
+  });
+
+  // Valida cada linha individualmente
+  Object.entries(gruposPorLinha).forEach(([numLinha, toksLinha]) => {
+    if (toksLinha.length === 0) return; // linha vazia, ignora
+
+    // ── REGRA 1: Atribuição → ID = expressão ──
+    // Verifica se o primeiro token é um ID e o segundo é '='
+    if (toksLinha[0].type === 'ID' && toksLinha[1]?.type === 'ASSIGN') {
+      const expressao = toksLinha.slice(2); // pega tudo após o '='
+      const resultado = parseExpr(expressao); // valida a expressão
+      if (resultado.ok) {
+        rules.push({ line: numLinha, rule: 'stmt → ID = expr', toks: toksLinha, ok: true });
+      } else {
+        errors.push({ msg: `Linha ${numLinha}: expressão inválida após '='`, line: numLinha });
+        rules.push({ line: numLinha, rule: 'stmt → ID = expr', toks: toksLinha, ok: false, err: resultado.err });
+      }
+    }
+    // ── REGRA 2: Impressão → print( expressão ) ──
+    // Verifica se começa com "print", tem '(' no início e ')' no final
+    else if (
+      toksLinha[0].type === 'PRINT' &&
+      toksLinha[1]?.type === 'LPAREN' &&
+      toksLinha[toksLinha.length - 1]?.type === 'RPAREN'
+    ) {
+      // Extrai apenas os tokens entre os parênteses
+      const interno = toksLinha.slice(2, toksLinha.length - 1);
+      const resultado = parseExpr(interno); // valida a expressão interna
+      if (resultado.ok) {
+        rules.push({ line: numLinha, rule: 'stmt → print(expr)', toks: toksLinha, ok: true });
+      } else {
+        errors.push({ msg: `Linha ${numLinha}: expressão inválida dentro de print()`, line: numLinha });
+        rules.push({ line: numLinha, rule: 'stmt → print(expr)', toks: toksLinha, ok: false, err: resultado.err });
+      }
+    }
+    // ── ERRO: estrutura não reconhecida por nenhuma regra da gramática ──
+    else {
+      errors.push({ msg: `Linha ${numLinha}: estrutura inválida`, line: numLinha });
+      rules.push({ line: numLinha, rule: '???', toks: toksLinha, ok: false, err: 'Estrutura não reconhecida pela gramática' });
+    }
+  });
+
+  return { ok: errors.length === 0, errors, rules };
+}
+
+// Valida uma expressão: expressão → termo ( + termo )*
+// Função auxiliar do parser para verificar a parte direita de atribuições
+function parseExpr(toks) {
+  if (toks.length === 0) return { ok: false, err: 'Expressão vazia' };
+
+  let i = 0; // índice de leitura dos tokens
+
+  // Função interna: tenta reconhecer um TERMO (ID ou NUM)
+  const parseTermo = () => {
+    if (toks[i]?.type === 'ID' || toks[i]?.type === 'NUM') {
+      i++; // avança o ponteiro se reconheceu um termo válido
+      return true;
+    }
+    return false; // não é um termo válido
+  };
+
+  // A expressão deve começar obrigatoriamente com um termo
+  if (!parseTermo()) return { ok: false, err: 'Esperado identificador ou número' };
+
+  // Depois do primeiro termo, podem vir zero ou mais "+ termo"
+  while (i < toks.length) {
+    // Espera um operador de adição '+'
+    if (toks[i]?.type !== 'PLUS') {
+      return { ok: false, err: `Token inesperado '${toks[i]?.val}'` };
+    }
+    i++; // consome o '+'
+    // Após o '+' deve vir obrigatoriamente outro termo
+    if (!parseTermo()) return { ok: false, err: `Esperado operando após '+'` };
+  }
+
+  return { ok: true }; // expressão válida!
+}
+
+
+// ==========================================================================
+// ETAPA 3 — ANÁLISE SEMÂNTICA
+// ==========================================================================
+// Objetivo: verificar o SIGNIFICADO do código, não apenas sua estrutura.
+// Mesmo que a sintaxe esteja correta, o código pode ter erros de significado.
+//
+// Conceito de Teoria da Computação: Linguagem Sensível ao Contexto (CSL)
+// A verificação depende do contexto (ex: saber se x foi declarado antes).
+//
+// Exemplo de erro semântico:
+//   y = x + 5   → INVÁLIDO se 'x' nunca foi declarado antes desta linha
+//
+// Esta etapa mantém uma TABELA DE SÍMBOLOS: registro de todas as variáveis
+// declaradas, seus tipos e valores calculados até o momento.
+//
+function semantic(tokens) {
+  const tabelaSimbolos = {}; // mapeia nome da variável → { valor, linha, tipo }
+  const errors = [];         // erros semânticos encontrados
+  const passos = [];         // log das ações realizadas (para exibição)
+
+  // Agrupa tokens por linha (mesma estratégia do parser)
+  const gruposPorLinha = {};
+  tokens.forEach(tok => {
+    if (tok.type === 'NEWLINE' || tok.type === 'COMMENT') return;
+    if (!gruposPorLinha[tok.line]) gruposPorLinha[tok.line] = [];
+    gruposPorLinha[tok.line].push(tok);
+  });
+
+  // Analisa cada linha na ordem em que aparece no código
+  Object.entries(gruposPorLinha).forEach(([numLinha, toksLinha]) => {
+    if (toksLinha.length === 0) return;
+
+    // ── CASO 1: Atribuição → ID = expressão ──
+    if (toksLinha[0].type === 'ID' && toksLinha[1]?.type === 'ASSIGN') {
+      const nomeVar = toksLinha[0].val;     // nome da variável sendo definida
+      const expressao = toksLinha.slice(2); // tokens da expressão do lado direito
+
+      // Verifica se TODAS as variáveis usadas na expressão já foram declaradas
+      let expressaoOk = true;
+      expressao.forEach(tok => {
+        if (tok.type === 'ID') {
+          // Se o ID não está na tabela de símbolos → erro semântico!
+          if (!tabelaSimbolos[tok.val]) {
+            errors.push({
+              msg: `Linha ${numLinha}: variável '${tok.val}' usada mas não declarada`,
+              line: numLinha
+            });
+            expressaoOk = false;
+          }
+        }
+      });
+
+      if (expressaoOk) {
+        // Calcula o valor da expressão e adiciona à tabela de símbolos
+        const valor = evalExpr(expressao, tabelaSimbolos);
+        tabelaSimbolos[nomeVar] = { val: valor, line: numLinha, type: 'int' };
+        passos.push({ line: numLinha, action: `DEFINE ${nomeVar} = ${valor}`, ok: true });
+      } else {
+        // Mesmo com erro, registra o passo para exibição
+        passos.push({ line: numLinha, action: `DEFINE ${nomeVar} = ???`, ok: false });
+      }
+    }
+    // ── CASO 2: Impressão → print( expressão ) ──
+    else if (toksLinha[0].type === 'PRINT') {
+      // Extrai os tokens dentro dos parênteses
+      const interno = toksLinha.slice(2, toksLinha.length - 1);
+
+      // Verifica se as variáveis dentro do print foram declaradas
+      interno.forEach(tok => {
+        if (tok.type === 'ID' && !tabelaSimbolos[tok.val]) {
+          errors.push({
+            msg: `Linha ${numLinha}: variável '${tok.val}' não declarada`,
+            line: numLinha
+          });
+        }
+      });
+
+      // Calcula o valor a ser impresso
+      const valor = evalExpr(interno, tabelaSimbolos);
+      const semErroNessaLinha = errors.filter(e => e.line == numLinha).length === 0;
+      passos.push({
+        line: numLinha,
+        action: `PRINT → ${valor !== null ? valor : 'ERRO'}`,
+        ok: semErroNessaLinha
+      });
+    }
+  });
+
+  return { ok: errors.length === 0, errors, symbolTable: tabelaSimbolos, steps: passos };
+}
+
+// Função auxiliar: calcula o valor numérico de uma expressão de tokens
+// Usa a tabela de símbolos para resolver variáveis
+function evalExpr(toks, tabelaSimbolos) {
+  try {
+    let resultado = null; // resultado acumulado
+    let op = '+';         // operador atual (padrão: soma)
+
+    toks.forEach(tok => {
+      if (tok.type === 'PLUS') { op = '+'; return; } // atualiza operador
+
+      // Resolve o valor: número literal ou variável da tabela
+      let val = tok.type === 'NUM'
+        ? parseInt(tok.val)                      // converte string "10" para número 10
+        : (tabelaSimbolos[tok.val]?.val ?? null); // busca na tabela de símbolos
+
+      if (val === null) return; // variável não encontrada, ignora
+
+      // Aplica a operação ao acumulador
+      if (resultado === null) resultado = val;      // primeiro termo
+      else if (op === '+') resultado += val;        // soma ao acumulador
+    });
+
+    return resultado;
+  } catch {
+    return null; // em caso de erro inesperado, retorna nulo
+  }
+}
+
+
+// ==========================================================================
+// ETAPA 4 — GERAÇÃO DE CÓDIGO INTERMEDIÁRIO (PSEUDO-ASSEMBLY)
+// ==========================================================================
+// Objetivo: converter as instruções de alto nível da Nanocode para um
+// código de baixo nível próximo ao assembly, usando um modelo de acumulador.
+//
+// Instruções geradas:
+//   LOAD valor    → carrega um número literal no acumulador
+//   LOAD_VAR nome → carrega o valor de uma variável no acumulador
+//   ADD valor     → soma um número literal ao acumulador
+//   ADD_VAR nome  → soma o valor de uma variável ao acumulador
+//   STORE nome    → salva o acumulador na memória com o nome da variável
+//   PRINT         → imprime o valor atual do acumulador
+//
+// Exemplo:  x = 10 + 5  →  LOAD 10 | ADD 5 | STORE x
+//
+function generateCode(tokens) {
+  const instrucoes = []; // lista de instruções pseudo-assembly geradas
+
+  // Agrupa tokens por linha
+  const gruposPorLinha = {};
+  tokens.forEach(tok => {
+    if (tok.type === 'NEWLINE' || tok.type === 'COMMENT') return;
+    if (!gruposPorLinha[tok.line]) gruposPorLinha[tok.line] = [];
+    gruposPorLinha[tok.line].push(tok);
+  });
+
+  // Gera instruções para cada linha do código
+  Object.entries(gruposPorLinha).forEach(([numLinha, toksLinha]) => {
+    if (toksLinha.length === 0) return;
+
+    // Insere um comentário indicando qual linha originou as instruções
+    instrucoes.push({ type: 'comment', val: `; linha ${numLinha}` });
+
+    // ── CASO 1: Atribuição → ID = expressão ──
+    if (toksLinha[0].type === 'ID' && toksLinha[1]?.type === 'ASSIGN') {
+      const nomeVar = toksLinha[0].val;
+      const expressao = toksLinha.slice(2);
+      let primeiroTermo = true; // flag para saber se é LOAD ou ADD
+
+      expressao.forEach(tok => {
+        if (tok.type === 'PLUS') return; // ignora o operador '+' em si
+
+        if (primeiroTermo) {
+          // Primeiro termo: usa LOAD para inicializar o acumulador
+          if (tok.type === 'NUM') {
+            instrucoes.push({ type: 'LOAD', arg: tok.val });     // carrega número
+          } else {
+            instrucoes.push({ type: 'LOAD_VAR', arg: tok.val }); // carrega variável
+          }
+          primeiroTermo = false;
+        } else {
+          // Termos seguintes: usa ADD para acumular ao valor já carregado
+          if (tok.type === 'NUM') {
+            instrucoes.push({ type: 'ADD', arg: tok.val });     // soma número
+          } else {
+            instrucoes.push({ type: 'ADD_VAR', arg: tok.val }); // soma variável
+          }
+        }
+      });
+
+      // Ao final, salva o acumulador na memória com o nome da variável
+      instrucoes.push({ type: 'STORE', arg: nomeVar });
+    }
+    // ── CASO 2: Impressão → print( expressão ) ──
+    else if (toksLinha[0].type === 'PRINT') {
+      const interno = toksLinha.slice(2, toksLinha.length - 1);
+
+      // Carrega o valor a ser impresso no acumulador
+      interno.forEach(tok => {
+        if (tok.type === 'PLUS') return;
+        if (tok.type === 'ID') {
+          instrucoes.push({ type: 'LOAD_VAR', arg: tok.val }); // carrega variável
+        } else {
+          instrucoes.push({ type: 'LOAD', arg: tok.val });     // carrega número literal
+        }
+      });
+
+      // Instrução de impressão: imprime o que está no acumulador
+      instrucoes.push({ type: 'PRINT', arg: '' });
+    }
+  });
+
+  return instrucoes;
+}
+
+
+// ==========================================================================
+// ETAPA 5 — EXECUÇÃO (SIMULAÇÃO DE MÁQUINA DE TURING)
+// ==========================================================================
+// Objetivo: executar o código intermediário e produzir o resultado final.
+//
+// Conceito de Teoria da Computação: Máquina de Turing (MT)
+// A Máquina de Turing é o modelo mais poderoso de computação (Tipo 0).
+// Ela possui:
+//   - Uma fita infinita (aqui simulada pela memória/variáveis)
+//   - Um cabeçote de leitura/escrita (aqui o acumulador)
+//   - Um conjunto de estados e transições (as instruções executadas)
+//   - Uma função de transição determinística
+//
+// O executor processa as instruções sequencialmente, mantendo:
+//   - 'acumulador': registrador de trabalho (como o ACC de uma CPU)
+//   - 'memoria': variáveis armazenadas (como a fita da MT)
+//   - 'fita': log de cada passo executado (para visualização educacional)
+//
+function execute(instrucoes) {
+  const memoria    = {};  // armazena as variáveis: { x: 10, y: 15, ... }
+  const saida      = [];  // valores impressos pelo print()
+  let acumulador   = 0;   // registrador de trabalho (ACC)
+  const fita       = [];  // registro de cada passo (simula fita da MT)
+
+  // Executa cada instrução em ordem (processamento sequencial da MT)
+  instrucoes.forEach(instr => {
+    if (instr.type === 'comment') return; // ignora comentários
+
+    // Registra o estado do acumulador ANTES de executar a instrução
+    const passo = {
+      instr: instr.type,
+      arg: instr.arg,
+      acc_before: acumulador
+    };
+
+    // Executa a instrução de acordo com seu tipo (transição de estado da MT)
+    switch (instr.type) {
+      case 'LOAD':
+        // Carrega um número literal no acumulador
+        acumulador = parseInt(instr.arg);
+        break;
+
+      case 'LOAD_VAR':
+        // Carrega o valor de uma variável da memória no acumulador
+        // Se a variável não existir, usa 0 como padrão
+        acumulador = memoria[instr.arg] ?? 0;
+        break;
+
+      case 'ADD':
+        // Soma um número literal ao acumulador
+        acumulador += parseInt(instr.arg);
+        break;
+
+      case 'ADD_VAR':
+        // Soma o valor de uma variável ao acumulador
+        acumulador += memoria[instr.arg] ?? 0;
+        break;
+
+      case 'STORE':
+        // Escreve o valor do acumulador na memória (como a MT escrevendo na fita)
+        memoria[instr.arg] = acumulador;
+        break;
+
+      case 'PRINT':
+        // Captura o valor atual do acumulador como saída do programa
+        saida.push(acumulador);
+        break;
+    }
+
+    // Registra o estado do acumulador DEPOIS de executar a instrução
+    passo.acc_after       = acumulador;
+    passo.memory_snapshot = { ...memoria }; // cópia do estado da memória neste momento
+    fita.push(passo); // adiciona o passo à fita da MT
+  });
+
+  return { output: saida, tape: fita, memory: memoria };
+}
+
+
+// ==========================================================================
+// ETAPA 6 — INTEGRAÇÃO: FUNÇÃO PRINCIPAL compile()
+// ==========================================================================
+// Orquestra todas as etapas do compilador em sequência:
+//   código fonte → lexer → parser → semântico → gerador → executor
+//
+// Se qualquer etapa falhar, a execução para e exibe o erro ao usuário.
+// Esta é a função chamada pelo botão "Compilar" ou pelo atalho Ctrl+Enter.
+//
+function compile() {
+  const codigo = ta.value.trim(); // lê o código do editor e remove espaços extras
+  if (!codigo) return;            // ignora se o editor estiver vazio
+
+  resetPipeline(); // limpa os indicadores de progresso
+
+  // ════════════════════════════════════════════════════════════════
+  // ETAPA 1: ANÁLISE LÉXICA
+  // ════════════════════════════════════════════════════════════════
+  setPipelineStep('lexer', 'active'); // marca etapa como "em andamento"
+  const { tokens, errors: errosLexicos } = lexer(codigo); // executa o lexer
+
+  // Pega referências aos elementos de exibição do painel léxico
+  const lexOut = document.getElementById('lexer-output');
+  const lexEmp = document.getElementById('empty-lexer');
+  lexEmp.style.display = 'none';   // esconde o estado vazio
+  lexOut.style.display = 'block';  // mostra o painel de resultado
+
+  // Se houver erros léxicos, exibe e para a compilação
+  if (errosLexicos.length > 0) {
+    setPipelineStep('lexer', 'error');
+    lexOut.innerHTML = errosLexicos.map(e =>
+      `<div class="status-msg status-err animate-in"><span class="status-icon">✕</span>${e.msg}</div>`
+    ).join('');
+    return; // para aqui: não adianta continuar sem tokens válidos
+  }
+
+  setPipelineStep('lexer', 'done'); // marca etapa como concluída com sucesso
+
+  // Agrupa os tokens por linha para exibição visual
+  const gruposExibicao = {};
+  tokens.forEach(tok => {
+    if (!gruposExibicao[tok.line]) gruposExibicao[tok.line] = [];
+    gruposExibicao[tok.line].push(tok);
+  });
+
+  // Monta o HTML de exibição dos tokens (cada token colorido por tipo)
+  let lexHTML = `<div class="phase-label">Tokens por linha</div>`;
+  Object.entries(gruposExibicao).forEach(([numLinha, ltoks]) => {
+    const toksRelevantes = ltoks.filter(t => t.type !== 'NEWLINE');
+    if (!toksRelevantes.length) return;
+    lexHTML += `<div style="margin-bottom:10px">`;
+    lexHTML += `<div style="font-size:10px;color:var(--text3);margin-bottom:5px;font-family:var(--font)">linha ${numLinha}</div>`;
+    lexHTML += `<div class="token-grid animate-in">`;
+    toksRelevantes.forEach(tok => {
+      // Define a classe CSS do token (para coloração por tipo)
+      const cls = tok.type === 'ASSIGN' ? 'ASSIGN'
+                : tok.type === 'PLUS'   ? 'OP'
+                : ['LPAREN','RPAREN'].includes(tok.type) ? tok.type
+                : tok.type;
+      // Define o rótulo exibido no token (ex: ID(x), NUM(10))
+      const rotulo = tok.type === 'ID'    ? `ID(${tok.val})`
+                   : tok.type === 'NUM'   ? `NUM(${tok.val})`
+                   : tok.type === 'PRINT' ? 'print'
+                   : tok.val;
+      lexHTML += `<span class="token token-${cls}" title="Tipo: ${tok.type}, Col: ${tok.col}">${rotulo}</span>`;
+    });
+    lexHTML += `</div></div>`;
+  });
+
+  // Exibe estatísticas do AFD: quantos tokens de cada tipo foram reconhecidos
+  lexHTML += `<div class="phase-label" style="margin-top:16px">AFD — Estados reconhecidos</div>`;
+  const estatTokens = {};
+  tokens.forEach(t => { estatTokens[t.type] = (estatTokens[t.type] || 0) + 1; });
+  lexHTML += `<div class="code-block" style="font-size:11px">`;
+  Object.entries(estatTokens).forEach(([tipo, qtd]) => {
+    lexHTML += `${tipo.padEnd(10)} → ${qtd} ocorrência(s)\n`;
+  });
+  lexHTML += `\nTotal: ${tokens.filter(t => t.type !== 'NEWLINE').length} tokens`;
+  lexHTML += `</div>`;
+  lexOut.innerHTML = lexHTML;
+
+  // ════════════════════════════════════════════════════════════════
+  // ETAPA 2: ANÁLISE SINTÁTICA
+  // ════════════════════════════════════════════════════════════════
+  setPipelineStep('parser', 'active');
+  const resultadoParser = parser(tokens); // executa o parser com os tokens
+
+  const parserOut = document.getElementById('parser-output');
+  const parserEmp = document.getElementById('empty-parser');
+  parserEmp.style.display = 'none';
+  parserOut.style.display = 'block';
+
+  let parserHTML = `<div class="phase-label">Regras da Gramática Aplicadas</div>`;
+
+  // Exibe erros sintáticos ou confirmação de sucesso
+  if (resultadoParser.errors.length > 0) {
+    setPipelineStep('parser', 'error');
+    parserHTML += resultadoParser.errors.map(e =>
+      `<div class="status-msg status-err animate-in"><span class="status-icon">✕</span>${e.msg}</div>`
+    ).join('');
+  } else {
+    setPipelineStep('parser', 'done');
+    parserHTML += `<div class="status-msg status-ok animate-in"><span class="status-icon">✓</span>Código sintaticamente correto</div>`;
+  }
+
+  // Exibe as derivações da gramática para cada linha do código
+  parserHTML += `<div class="phase-label" style="margin-top:14px">Derivações</div>`;
+  parserHTML += `<div class="code-block" style="font-size:11px">`;
+  parserHTML += `program → stmt*\n`; // regra inicial da gramática
+  resultadoParser.rules.forEach(r => {
+    const icone = r.ok ? '✓' : '✗';
+    parserHTML += `linha ${r.line}: ${icone} ${r.rule}\n`;
+    if (!r.ok && r.err) parserHTML += `       ↳ <span style="color:var(--error)">${r.err}</span>\n`;
+  });
+  parserHTML += `</div>`;
+
+  // Exibe a gramática BNF completa da Nanocode para referência
+  parserHTML += `<div class="phase-label" style="margin-top:14px">Gramática BNF da Nanocode</div>`;
+  parserHTML += `<div class="code-block" style="font-size:11px"><span class="kw">program</span> → <span class="str">stmt</span>*
+<span class="kw">stmt</span>    → <span class="str">ID</span> <span class="op">=</span> <span class="str">expr</span>
+          | <span class="kw">print</span>(<span class="str">expr</span>)
+<span class="kw">expr</span>    → <span class="str">term</span> (<span class="op">+</span> <span class="str">term</span>)*
+<span class="kw">term</span>    → <span class="str">ID</span> | <span class="str">NUM</span>
+<span class="kw">ID</span>      → <span class="num">[a-z][a-z0-9]*</span>
+<span class="kw">NUM</span>     → <span class="num">[0-9]+</span></div>`;
+
+  parserOut.innerHTML = parserHTML;
+
+  // Para a compilação se houver erros sintáticos
+  if (resultadoParser.errors.length > 0) return;
+
+  // ════════════════════════════════════════════════════════════════
+  // ETAPA 3: ANÁLISE SEMÂNTICA
+  // ════════════════════════════════════════════════════════════════
+  setPipelineStep('semantic', 'active');
+  const resultadoSem = semantic(tokens); // executa o analisador semântico
+
+  const semOut = document.getElementById('semantic-output');
+  const semEmp = document.getElementById('empty-semantic');
+  semEmp.style.display = 'none';
+  semOut.style.display = 'block';
+
+  // Exibe a tabela de símbolos construída durante a análise
+  let semHTML = `<div class="phase-label">Tabela de Símbolos</div>`;
+
+  if (Object.keys(resultadoSem.symbolTable).length > 0) {
+    // Monta uma tabela HTML com: nome da variável, tipo, valor e linha de declaração
+    semHTML += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px">`;
+    semHTML += `<table class="sym-table"><thead><tr><th>Variável</th><th>Tipo</th><th>Valor</th><th>Linha</th></tr></thead><tbody>`;
+    Object.entries(resultadoSem.symbolTable).forEach(([nome, info]) => {
+      semHTML += `<tr><td class="sym-name">${nome}</td><td style="color:var(--text3)">int</td><td class="sym-val">${info.val}</td><td class="sym-line">${info.line}</td></tr>`;
+    });
+    semHTML += `</tbody></table></div>`;
+  } else {
+    semHTML += `<div class="status-msg status-warn animate-in"><span class="status-icon">⚠</span>Nenhuma variável definida</div>`;
+  }
+
+  // Exibe erros semânticos ou confirmação de sucesso
+  if (resultadoSem.errors.length > 0) {
+    setPipelineStep('semantic', 'error');
+    semHTML += `<div class="phase-label">Erros Semânticos</div>`;
+    semHTML += resultadoSem.errors.map(e =>
+      `<div class="status-msg status-err animate-in"><span class="status-icon">✕</span>${e.msg}</div>`
+    ).join('');
+  } else {
+    setPipelineStep('semantic', 'done');
+    semHTML += `<div class="status-msg status-ok animate-in"><span class="status-icon">✓</span>Sem erros semânticos — todas as variáveis declaradas antes do uso</div>`;
+  }
+
+  // Exibe o log de passos da análise semântica
+  semHTML += `<div class="phase-label" style="margin-top:14px">Passos da análise</div>`;
+  semHTML += `<div class="code-block" style="font-size:11px">`;
+  resultadoSem.steps.forEach(s => {
+    semHTML += `${s.ok ? '✓' : '✗'} ${s.action}\n`;
+  });
+  semHTML += `</div>`;
+  semOut.innerHTML = semHTML;
+
+  // Para a compilação se houver erros semânticos
+  if (resultadoSem.errors.length > 0) return;
+
+  // ════════════════════════════════════════════════════════════════
+  // ETAPA 4: GERAÇÃO DE CÓDIGO INTERMEDIÁRIO
+  // ════════════════════════════════════════════════════════════════
+  setPipelineStep('codegen', 'active');
+  const instrucoes = generateCode(tokens); // gera o pseudo-assembly
+
+  const cgOut = document.getElementById('codegen-output');
+  const cgEmp = document.getElementById('empty-codegen');
+  cgEmp.style.display = 'none';
+  cgOut.style.display = 'block';
+
+  // Monta o HTML de exibição do pseudo-assembly gerado
+  let cgHTML = `<div class="phase-label">Pseudo-Assembly Gerado</div>`;
+  cgHTML += `<div class="code-block">`;
+  instrucoes.forEach((instr, i) => {
+    if (instr.type === 'comment') {
+      // Linha de comentário (indicando a linha de origem no código Nanocode)
+      cgHTML += `<div class="asm-line"><span class="asm-comment">${instr.val}</span></div>`;
+    } else {
+      // Instrução: número da instrução + opcode + argumento
+      cgHTML += `<div class="asm-line">
+        <span style="color:var(--text3);font-size:11px;min-width:28px">${String(i).padStart(2, '0')}</span>
+        <span class="asm-instr">${instr.type}</span>
+        <span class="asm-arg">${instr.arg}</span>
+      </div>`;
+    }
+  });
+  cgHTML += `</div>`;
+
+  // Exibe os registradores utilizados durante a execução
+  cgHTML += `<div class="phase-label" style="margin-top:14px">Registradores</div>`;
+  cgHTML += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
+  cgHTML += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px">`;
+  cgHTML += `<div style="font-size:10px;color:var(--text3);margin-bottom:4px">ACUMULADOR</div>`;
+  cgHTML += `<div style="font-family:var(--font);color:var(--accent);font-size:14px;font-weight:600">ACC</div></div>`;
+  cgHTML += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px">`;
+  cgHTML += `<div style="font-size:10px;color:var(--text3);margin-bottom:4px">MEMÓRIA</div>`;
+  cgHTML += `<div style="font-family:var(--font);color:var(--info);font-size:14px;font-weight:600">MEM[]</div></div></div>`;
+
+  setPipelineStep('codegen', 'done');
+  cgOut.innerHTML = cgHTML;
+
+  // ════════════════════════════════════════════════════════════════
+  // ETAPA 5: EXECUÇÃO (MÁQUINA DE TURING)
+  // ════════════════════════════════════════════════════════════════
+  setPipelineStep('exec', 'active');
+  const resultadoExec = execute(instrucoes); // executa o pseudo-assembly
+
+  const execOut = document.getElementById('exec-output');
+  const execEmp = document.getElementById('empty-exec');
+  execEmp.style.display = 'none';
+  execOut.style.display = 'block';
+
+  // Monta o terminal de saída do programa
+  let execHTML = `<div class="phase-label">Saída do Programa</div>`;
+  execHTML += `<div class="terminal animate-in">`;
+  execHTML += `<div class="term-line"><span class="term-prompt">$</span><span class="term-out" style="color:var(--text3)"> nano main.nano</span></div>`;
+
+  // Exibe cada valor impresso pelo print() do código Nanocode
+  if (resultadoExec.output.length === 0) {
+    execHTML += `<div class="term-line"><span style="color:var(--text3);font-style:italic">  (sem saída)</span></div>`;
+  } else {
+    resultadoExec.output.forEach(val => {
+      execHTML += `<div class="term-line"><span class="term-prompt" style="color:var(--text3)">›</span><span class="term-out"> ${val}</span></div>`;
+    });
+  }
+  execHTML += `<div class="term-line"><span class="term-prompt">$</span><span style="color:var(--success)"> processo finalizado com código 0</span></div>`;
+  execHTML += `</div>`;
+
+  // Exibe o estado final da memória (equivale ao estado final da fita da MT)
+  execHTML += `<div class="phase-label" style="margin-top:14px">Estado Final da Memória (MT)</div>`;
+  execHTML += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">`;
+  execHTML += `<table class="sym-table"><thead><tr><th>Variável</th><th>Valor Final</th></tr></thead><tbody>`;
+  Object.entries(resultadoExec.memory).forEach(([nome, val]) => {
+    execHTML += `<tr><td class="sym-name">${nome}</td><td class="sym-val">${val}</td></tr>`;
+  });
+  if (Object.keys(resultadoExec.memory).length === 0) {
+    execHTML += `<tr><td colspan="2" style="color:var(--text3);text-align:center;font-style:italic">Memória vazia</td></tr>`;
+  }
+  execHTML += `</tbody></table></div>`;
+
+  // Exibe a fita da Máquina de Turing: cada instrução com estado antes e depois
+  execHTML += `<div class="phase-label" style="margin-top:14px">Fita da Máquina de Turing</div>`;
+  execHTML += `<div class="code-block" style="font-size:11px;max-height:150px;overflow:auto">`;
+  resultadoExec.tape.forEach((passo, i) => {
+    execHTML += `[${String(i).padStart(2, '0')}] ${passo.instr.padEnd(10)} ${String(passo.arg || '').padEnd(6)} ACC: ${passo.acc_before} → ${passo.acc_after}\n`;
+  });
+  execHTML += `</div>`;
+
+  setPipelineStep('exec', 'done'); // todas as etapas concluídas com sucesso!
+  execOut.innerHTML = execHTML;
+}
+
+
+// --------------------------------------------------------------------------
+// INICIALIZAÇÃO
+// --------------------------------------------------------------------------
+// Atualiza os números de linha ao carregar a página (exibe "1" por padrão)
+updateLineNums();
+</script>
+</body>
+</html>
